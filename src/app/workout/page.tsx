@@ -1,0 +1,402 @@
+"use client";
+
+import { useState, useCallback, useEffect } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db, type Exercise, type TemplateExercise } from "@/lib/db";
+import { useActiveWorkout } from "@/hooks/use-active-workout";
+import { usePreviousWorkout } from "@/hooks/use-previous-workout";
+import { useRestTimer } from "@/hooks/use-rest-timer";
+import { usePreferences } from "@/hooks/use-preferences";
+import { ExerciseCard } from "@/components/workout/exercise-card";
+import { RestTimer } from "@/components/workout/rest-timer";
+import { RpePrompt } from "@/components/workout/rpe-prompt";
+import { MoodEnergyPrompt } from "@/components/workout/mood-energy-prompt";
+import { ExercisePicker } from "@/components/plans/exercise-picker";
+import { Button } from "@/components/ui/button";
+import { Header } from "@/components/layout/header";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { CheckCircle, XCircle, Clock } from "lucide-react";
+import { playBeep } from "@/lib/sound";
+import Link from "next/link";
+import type { MuscleGroup } from "@/lib/constants";
+
+export default function WorkoutPage() {
+  const { session, sets, logSet, deleteSet, updateSet, completeWorkout, cancelWorkout } =
+    useActiveWorkout();
+  const { prefs } = usePreferences();
+  const { remaining, isRunning, start: startTimer, stop: stopTimer } =
+    useRestTimer();
+
+  // RPE state
+  const [rpeOpen, setRpeOpen] = useState(false);
+  const [lastSetId, setLastSetId] = useState<number | null>(null);
+
+  // Mood/energy prompt state
+  const [showMoodPrompt, setShowMoodPrompt] = useState(false);
+
+  // Exercise picker state for choice exercises
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerMuscleGroup, setPickerMuscleGroup] =
+    useState<MuscleGroup>("biceps");
+  const [pickerTemplateExId, setPickerTemplateExId] = useState<number | null>(
+    null
+  );
+
+  // Track chosen exercises for choice slots: templateExerciseId -> Exercise
+  const [chosenExercises, setChosenExercises] = useState<
+    Map<number, Exercise>
+  >(new Map());
+
+  const template = useLiveQuery(
+    () =>
+      session?.templateId
+        ? db.workoutTemplates.get(session.templateId)
+        : undefined,
+    [session?.templateId]
+  );
+
+  const parts = useLiveQuery(
+    () =>
+      session?.templateId
+        ? db.templateParts
+            .where("templateId")
+            .equals(session.templateId)
+            .filter((p) => p.dayIndex === session.dayIndex)
+            .sortBy("partOrder")
+        : [],
+    [session?.templateId, session?.dayIndex]
+  );
+
+  const templateExercises = useLiveQuery(async () => {
+    if (!parts?.length) return [];
+    const partIds = parts.map((p) => p.id!);
+    return db.templateExercises
+      .where("partId")
+      .anyOf(partIds)
+      .sortBy("order");
+  }, [parts?.map((p) => p.id).join(",")]);
+
+  const exercises = useLiveQuery(async () => {
+    if (!templateExercises?.length) return [];
+    const ids = new Set<number>();
+    for (const te of templateExercises) {
+      if (te.exerciseId) ids.add(te.exerciseId);
+    }
+    if (ids.size === 0) return [];
+    return db.exercises.where("id").anyOf([...ids]).toArray();
+  }, [templateExercises?.map((te) => te.id).join(",")]);
+
+  const { getPreviousForExercise } = usePreviousWorkout(
+    session?.templateId,
+    session?.dayIndex
+  );
+
+  // Check if mood/energy prompt needed (no mood set yet on active session)
+  const needsMoodPrompt =
+    !!session && session.mood === undefined && sets.length === 0;
+
+  // Show mood prompt when workout starts and no sets logged yet
+  useEffect(() => {
+    if (needsMoodPrompt && !showMoodPrompt) {
+      setShowMoodPrompt(true);
+    }
+  }, [needsMoodPrompt, showMoodPrompt]);
+
+  const handleMoodSubmit = useCallback(
+    async (mood: number, energy: number) => {
+      if (session?.id) {
+        await db.workoutSessions.update(session.id, { mood, energy });
+      }
+      setShowMoodPrompt(false);
+    },
+    [session?.id]
+  );
+
+  // No active session
+  if (!session) {
+    return (
+      <div>
+        <Header title="Workout" />
+        <div className="flex flex-col items-center justify-center gap-4 p-8 pt-24">
+          <div className="rounded-full bg-zinc-100 p-6">
+            <Clock className="h-12 w-12 text-zinc-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-zinc-700">
+            No Active Workout
+          </h2>
+          <p className="text-center text-sm text-zinc-500">
+            Start a workout from your plans to begin logging sets.
+          </p>
+          <Link href="/plans">
+            <Button size="lg">Browse Plans</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const exerciseMap = new Map(exercises?.map((e) => [e.id, e]) ?? []);
+
+  // Build ordered list including choice exercises
+  const orderedExercises: {
+    templateExercise: TemplateExercise;
+    exercise: Exercise | undefined;
+    isChoiceResolved: boolean;
+  }[] = (templateExercises ?? []).map((te) => {
+    if (te.isChoice) {
+      const chosen = chosenExercises.get(te.id!);
+      return {
+        templateExercise: te,
+        exercise: chosen,
+        isChoiceResolved: !!chosen,
+      };
+    }
+    return {
+      templateExercise: te,
+      exercise: te.exerciseId ? exerciseMap.get(te.exerciseId) : undefined,
+      isChoiceResolved: true,
+    };
+  });
+
+  const elapsed = session.startedAt
+    ? Math.floor((Date.now() - new Date(session.startedAt).getTime()) / 60000)
+    : 0;
+
+  function handleLogSet(
+    exerciseId: number,
+    templateExerciseId: number | undefined,
+    weight: number,
+    reps: number,
+    special?: {
+      partialsCount?: number;
+      dropSetWeight?: number;
+      dropSetReps?: number;
+      forcedRepsCount?: number;
+      isPausedReps?: boolean;
+    }
+  ) {
+    const exerciseSets = sets.filter((s) => s.exerciseId === exerciseId);
+    logSet({
+      exerciseId,
+      templateExerciseId,
+      setNumber: exerciseSets.length + 1,
+      weight,
+      reps,
+      ...special,
+    }).then((id) => {
+      if (typeof id === "number") {
+        setLastSetId(id);
+        // Show RPE prompt if enabled
+        if (prefs.showRpePrompt) {
+          setRpeOpen(true);
+        }
+      }
+    });
+
+    // Start rest timer
+    if (prefs.restTimerEnabled) {
+      const te = templateExercises?.find((t) => t.id === templateExerciseId);
+      startTimer(te?.restSeconds ?? 90, () => {
+        playBeep();
+      });
+    }
+  }
+
+  async function handleRpeSubmit(rpe: number) {
+    if (lastSetId) {
+      await db.workoutSets.update(lastSetId, { rpe });
+    }
+    setRpeOpen(false);
+  }
+
+  function handleRpeDismiss() {
+    setRpeOpen(false);
+  }
+
+  function openPicker(te: TemplateExercise) {
+    if (te.choiceMuscleGroup) {
+      setPickerMuscleGroup(te.choiceMuscleGroup);
+      setPickerTemplateExId(te.id!);
+      setPickerOpen(true);
+    }
+  }
+
+  function handleExercisePicked(exercise: Exercise) {
+    if (pickerTemplateExId !== null) {
+      setChosenExercises((prev) => {
+        const next = new Map(prev);
+        next.set(pickerTemplateExId, exercise);
+        return next;
+      });
+    }
+  }
+
+  // Determine first incomplete exercise for auto-expand
+  const firstIncompleteIdx = orderedExercises.findIndex((item) => {
+    if (!item.exercise) return true; // unresolved choice
+    const logged = sets.filter(
+      (s) => s.exerciseId === item.exercise!.id
+    ).length;
+    return logged < item.templateExercise.targetSets;
+  });
+
+  return (
+    <div>
+      <div className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-zinc-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/80 px-4 backdrop-blur-md">
+        <div>
+          <h1 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+            {template?.name ?? "Workout"}
+          </h1>
+          <p className="text-xs text-zinc-500">
+            {template?.splitDays[session.dayIndex]} · {elapsed} min
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={cancelWorkout}>
+            <XCircle className="mr-1 h-4 w-4" />
+            Cancel
+          </Button>
+          <Button size="sm" onClick={completeWorkout}>
+            <CheckCircle className="mr-1 h-4 w-4" />
+            Finish
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-3 p-4">
+        {/* Mood/energy badges if set */}
+        {session.mood && session.energy && (
+          <div className="flex gap-2">
+            <Badge variant="secondary">
+              Mood: {session.mood}/10
+            </Badge>
+            <Badge variant="secondary">
+              Energy: {session.energy}/10
+            </Badge>
+          </div>
+        )}
+
+        {(parts ?? []).map((part) => {
+          const partExercises = orderedExercises.filter(
+            (item) => item.templateExercise.partId === part.id
+          );
+          if (partExercises.length === 0) return null;
+
+          return (
+            <div key={part.id}>
+              <div className="mb-2 flex items-center gap-2">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                  {part.name}
+                </h3>
+                {part.structure && (
+                  <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                    {part.structure.replace(/-/g, " ")}
+                  </Badge>
+                )}
+              </div>
+              <div className="space-y-2">
+                {partExercises.map((item) => {
+                  const globalIdx = orderedExercises.indexOf(item);
+
+                  // Choice exercise not yet selected
+                  if (
+                    item.templateExercise.isChoice &&
+                    !item.isChoiceResolved
+                  ) {
+                    return (
+                      <Card key={item.templateExercise.id}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-zinc-600">
+                              Pick a{" "}
+                              <span className="capitalize">
+                                {item.templateExercise.choiceMuscleGroup}
+                              </span>{" "}
+                              exercise
+                            </p>
+                            <p className="text-xs text-zinc-400">
+                              {item.templateExercise.targetSets} x{" "}
+                              {item.templateExercise.targetReps}
+                              {item.templateExercise.weightDescriptor &&
+                                ` · ${item.templateExercise.weightDescriptor}`}
+                              {item.templateExercise.intensityDescriptor &&
+                                ` · ${item.templateExercise.intensityDescriptor}`}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => openPicker(item.templateExercise)}
+                          >
+                            Choose
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  }
+
+                  if (!item.exercise) return null;
+
+                  return (
+                    <ExerciseCard
+                      key={item.templateExercise.id}
+                      exercise={item.exercise}
+                      templateExercise={item.templateExercise}
+                      loggedSets={sets.filter(
+                        (s) => s.exerciseId === item.exercise!.id
+                      )}
+                      previousSets={getPreviousForExercise(
+                        item.exercise.id!
+                      )}
+                      onLogSet={(weight, reps, special) =>
+                        handleLogSet(
+                          item.exercise!.id!,
+                          item.templateExercise.id,
+                          weight,
+                          reps,
+                          special
+                        )
+                      }
+                      onDeleteSet={(setId) => deleteSet(setId)}
+                      onEditSet={(setId, weight, reps) =>
+                        updateSet(setId, { weight, reps })
+                      }
+                      energy={session.energy}
+                      unit={prefs.weightUnit}
+                      initialExpanded={globalIdx === firstIncompleteIdx}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <RestTimer
+        remaining={remaining}
+        isRunning={isRunning}
+        onSkip={stopTimer}
+      />
+
+      <RpePrompt
+        open={rpeOpen}
+        onSubmit={handleRpeSubmit}
+        onDismiss={handleRpeDismiss}
+      />
+
+      <MoodEnergyPrompt
+        open={showMoodPrompt}
+        onSubmit={handleMoodSubmit}
+        onSkip={() => setShowMoodPrompt(false)}
+      />
+
+      <ExercisePicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        muscleGroup={pickerMuscleGroup}
+        onSelect={handleExercisePicked}
+      />
+    </div>
+  );
+}
