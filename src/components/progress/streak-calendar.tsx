@@ -13,7 +13,29 @@ export function StreakCalendar() {
     getStreakData().then(setData);
   }, []);
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <Card>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">
+            Workout Streak
+          </h2>
+          <div className="flex items-center gap-1.5">
+            <Flame className="h-5 w-5 text-zinc-300" />
+            <span className="text-sm font-bold text-zinc-400">0 weeks</span>
+          </div>
+        </div>
+        <div className="py-6 text-center">
+          <p className="mb-1 text-sm text-zinc-500 dark:text-zinc-400">
+            Start your streak today
+          </p>
+          <p className="text-xs text-zinc-400">
+            Complete your first workout to begin tracking
+          </p>
+        </div>
+      </Card>
+    );
+  }
 
   const workoutDateSet = new Set(data.workoutDates);
 

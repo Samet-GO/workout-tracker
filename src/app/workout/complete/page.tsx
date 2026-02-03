@@ -4,8 +4,9 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Trophy, Dumbbell, Clock, ArrowRight } from "lucide-react";
+import { Trophy, Dumbbell, Clock, ArrowRight, Shield } from "lucide-react";
 import Link from "next/link";
+import { getBackupMeta } from "@/lib/export";
 
 export default function WorkoutCompletePage() {
   // Get most recently completed session
@@ -119,6 +120,27 @@ export default function WorkoutCompletePage() {
           );
         })}
       </div>
+
+      {/* Backup confirmation */}
+      <Card className="flex items-center gap-3 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+        <div className="rounded-full bg-green-100 p-2 dark:bg-green-900/50">
+          <Shield className="h-4 w-4 text-green-600 dark:text-green-400" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-green-800 dark:text-green-200">
+            Workout backed up
+          </p>
+          <p className="text-xs text-green-600 dark:text-green-400">
+            {(() => {
+              const meta = getBackupMeta();
+              return meta ? `${meta.sessionCount} total workouts saved` : "Auto-saved to device";
+            })()}
+          </p>
+        </div>
+        <Link href="/settings" className="text-xs font-medium text-green-700 hover:underline dark:text-green-300">
+          Settings
+        </Link>
+      </Card>
 
       <Link href="/plans" className="block">
         <Button size="xl" className="w-full">

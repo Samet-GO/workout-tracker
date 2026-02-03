@@ -2,13 +2,25 @@
 
 import { use, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowLeft, Play, Timer, Dumbbell } from "lucide-react";
+import {
+  ArrowLeft,
+  Play,
+  Timer,
+  Dumbbell,
+  ChevronUp,
+  ChevronDown,
+  ArrowLeftRight,
+  Pencil,
+  Settings,
+} from "lucide-react";
 import Link from "next/link";
-import { db, type TemplateExercise } from "@/lib/db";
+import { db, type TemplateExercise, type Exercise } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useActiveWorkout } from "@/hooks/use-active-workout";
+import { ExercisePicker } from "@/components/plans/exercise-picker";
+import type { MuscleGroup } from "@/lib/constants";
 
 export default function PlanDetailPage({
   params,
@@ -19,6 +31,11 @@ export default function PlanDetailPage({
   const templateId = Number(planId);
   const { startWorkout, isActive } = useActiveWorkout();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [replacingExercise, setReplacingExercise] = useState<{
+    templateExerciseId: number;
+    muscleGroup: MuscleGroup;
+  } | null>(null);
 
   const template = useLiveQuery(
     () => db.workoutTemplates.get(templateId),
@@ -62,6 +79,31 @@ export default function PlanDetailPage({
     return db.exercises.where("id").anyOf([...ids]).toArray();
   }, [dayData]);
 
+  // Database operations for plan customization
+  async function handleReplaceExercise(
+    templateExerciseId: number,
+    newExercise: Exercise
+  ) {
+    await db.templateExercises.update(templateExerciseId, {
+      exerciseId: newExercise.id,
+    });
+    setReplacingExercise(null);
+  }
+
+  async function handleReorderExercise(
+    exercise1: TemplateExercise,
+    exercise2: TemplateExercise
+  ) {
+    await db.transaction("rw", db.templateExercises, async () => {
+      await db.templateExercises.update(exercise1.id!, {
+        order: exercise2.order,
+      });
+      await db.templateExercises.update(exercise2.id!, {
+        order: exercise1.order,
+      });
+    });
+  }
+
   if (!template || !dayData || !exercises) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -89,9 +131,26 @@ export default function PlanDetailPage({
         <Link href="/plans" className="rounded-full p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 truncate">
+        <h1 className="flex-1 text-lg font-bold text-zinc-900 dark:text-zinc-100 truncate">
           {template.name}
         </h1>
+        <Link
+          href={`/plans/${planId}/edit`}
+          className="rounded-full p-2 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+        >
+          <Settings className="h-5 w-5" />
+        </Link>
+        <button
+          onClick={() => setIsEditMode(!isEditMode)}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+            isEditMode
+              ? "bg-blue-600 text-white"
+              : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          }`}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+          {isEditMode ? "Done" : "Edit"}
+        </button>
       </div>
 
       <div className="p-4 space-y-4">
@@ -148,63 +207,115 @@ export default function PlanDetailPage({
                   )}
                 </div>
                 <div className="space-y-2">
-                  {partExercises.map((te) => {
+                  {partExercises.map((te, index) => {
                     const exercise = te.exerciseId
                       ? exerciseMap.get(te.exerciseId)
                       : null;
+                    const isFirst = index === 0;
+                    const isLast = index === partExercises.length - 1;
+                    const showReorderButtons = isEditMode && partExercises.length > 1;
+                    const showSwapButton = isEditMode && !te.isChoice;
+                    const muscleGroup = te.isChoice
+                      ? te.choiceMuscleGroup
+                      : exercise?.muscleGroup;
+
                     return (
                       <div
                         key={te.id}
                         className="rounded-lg bg-zinc-50 dark:bg-zinc-800/50 px-3 py-2.5"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                            {te.isChoice
-                              ? `Any ${te.choiceMuscleGroup} exercise`
-                              : exercise?.name ?? "Unknown"}
-                          </p>
-                          <div className="flex shrink-0 items-center gap-1.5">
-                            <Badge variant="outline">
-                              {te.targetSets > 1
-                                ? `${te.targetSets}x${te.targetReps}`
-                                : `${te.targetReps} reps`}
-                            </Badge>
-                            {te.intensityDescriptor && (
-                              <Badge
-                                variant={
-                                  te.intensityDescriptor.includes("All Out") ||
-                                  te.intensityDescriptor.includes("Harder")
-                                    ? "destructive"
-                                    : te.intensityDescriptor.includes("Hard")
-                                      ? "warning"
-                                      : "secondary"
+                        <div className="flex items-start gap-2">
+                          {/* Reorder buttons */}
+                          {showReorderButtons && (
+                            <div className="flex flex-col gap-0.5 pt-0.5">
+                              <button
+                                onClick={() =>
+                                  handleReorderExercise(te, partExercises[index - 1])
                                 }
+                                disabled={isFirst}
+                                className="rounded p-0.5 text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
                               >
-                                {te.intensityDescriptor}
-                              </Badge>
+                                <ChevronUp className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleReorderExercise(te, partExercises[index + 1])
+                                }
+                                disabled={isLast}
+                                className="rounded p-0.5 text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                              >
+                                <ChevronDown className="h-4 w-4" />
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Exercise content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                {te.isChoice
+                                  ? `Any ${te.choiceMuscleGroup} exercise`
+                                  : exercise?.name ?? "Unknown"}
+                              </p>
+                              <div className="flex shrink-0 items-center gap-1.5">
+                                <Badge variant="outline">
+                                  {te.targetSets > 1
+                                    ? `${te.targetSets}x${te.targetReps}`
+                                    : `${te.targetReps} reps`}
+                                </Badge>
+                                {te.intensityDescriptor && (
+                                  <Badge
+                                    variant={
+                                      te.intensityDescriptor.includes("All Out") ||
+                                      te.intensityDescriptor.includes("Harder")
+                                        ? "destructive"
+                                        : te.intensityDescriptor.includes("Hard")
+                                          ? "warning"
+                                          : "secondary"
+                                    }
+                                  >
+                                    {te.intensityDescriptor}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            {/* Weight descriptor & rest time */}
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                              {te.weightDescriptor && (
+                                <span className="flex items-center gap-1">
+                                  <Dumbbell className="h-3 w-3" />
+                                  {te.weightDescriptor}
+                                </span>
+                              )}
+                              {te.restSeconds > 0 && (
+                                <span className="flex items-center gap-1">
+                                  <Timer className="h-3 w-3" />
+                                  Rest {te.restSeconds}s
+                                </span>
+                              )}
+                            </div>
+                            {te.notes && (
+                              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 italic">
+                                {te.notes}
+                              </p>
                             )}
                           </div>
-                        </div>
-                        {/* Weight descriptor & rest time */}
-                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                          {te.weightDescriptor && (
-                            <span className="flex items-center gap-1">
-                              <Dumbbell className="h-3 w-3" />
-                              {te.weightDescriptor}
-                            </span>
+
+                          {/* Swap button */}
+                          {showSwapButton && muscleGroup && (
+                            <button
+                              onClick={() =>
+                                setReplacingExercise({
+                                  templateExerciseId: te.id!,
+                                  muscleGroup: muscleGroup,
+                                })
+                              }
+                              className="mt-0.5 rounded p-1.5 text-zinc-400 transition-colors hover:bg-zinc-200 hover:text-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+                            >
+                              <ArrowLeftRight className="h-4 w-4" />
+                            </button>
                           )}
-                          {te.restSeconds > 0 && (
-                            <span className="flex items-center gap-1">
-                              <Timer className="h-3 w-3" />
-                              Rest {te.restSeconds}s
-                            </span>
-                          )}
                         </div>
-                        {te.notes && (
-                          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 italic">
-                            {te.notes}
-                          </p>
-                        )}
                       </div>
                     );
                   })}
@@ -230,6 +341,18 @@ export default function PlanDetailPage({
           {isActive ? "Workout In Progress" : "Start Workout"}
         </Button>
       </div>
+
+      {/* Exercise replacement picker */}
+      {replacingExercise && (
+        <ExercisePicker
+          open={!!replacingExercise}
+          onClose={() => setReplacingExercise(null)}
+          muscleGroup={replacingExercise.muscleGroup}
+          onSelect={(exercise) =>
+            handleReplaceExercise(replacingExercise.templateExerciseId, exercise)
+          }
+        />
+      )}
     </div>
   );
 }

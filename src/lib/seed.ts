@@ -37,6 +37,7 @@ export async function seedDatabase() {
         theme: "system",
         restTimerEnabled: true,
         showRpePrompt: true,
+        showMoodPrompt: true,
         defaultIncrement: 2.5,
         // seedVersion intentionally omitted — set after templates are seeded
       });
@@ -180,6 +181,7 @@ async function stampSeedVersion(version: number) {
       theme: "system",
       restTimerEnabled: true,
       showRpePrompt: true,
+      showMoodPrompt: true,
       defaultIncrement: 2.5,
       seedVersion: version,
     });

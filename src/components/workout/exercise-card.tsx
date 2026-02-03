@@ -30,6 +30,7 @@ interface ExerciseCardProps {
   energy?: number;
   unit: string;
   initialExpanded?: boolean;
+  disabled?: boolean;
 }
 
 export function ExerciseCard({
@@ -43,8 +44,9 @@ export function ExerciseCard({
   energy,
   unit,
   initialExpanded = false,
+  disabled = false,
 }: ExerciseCardProps) {
-  const [expanded, setExpanded] = useState(initialExpanded);
+  const [expanded, setExpanded] = useState(initialExpanded && !disabled);
   const [editingSetId, setEditingSetId] = useState<number | null>(null);
 
   const targetSets = templateExercise.targetSets;
@@ -65,12 +67,16 @@ export function ExerciseCard({
     <Card
       className={cn(
         "transition-colors",
-        isComplete && "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/30"
+        isComplete && "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/30",
+        disabled && "opacity-50 pointer-events-none"
       )}
     >
       <button
-        className="flex w-full items-center justify-between"
-        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center justify-between min-h-[44px]"
+        onClick={() => !disabled && setExpanded(!expanded)}
+        disabled={disabled}
+        aria-expanded={expanded}
+        aria-controls={`exercise-details-${exercise.id}`}
       >
         <div className="flex items-center gap-3">
           <div
@@ -80,9 +86,10 @@ export function ExerciseCard({
                 ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400"
                 : "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400"
             )}
+            aria-label={isComplete ? "Complete" : `${completedSets} of ${targetSets} sets`}
           >
             {isComplete ? (
-              <Check className="h-4 w-4" />
+              <Check className="h-4 w-4" aria-hidden="true" />
             ) : (
               `${completedSets}/${targetSets}`
             )}
@@ -101,14 +108,14 @@ export function ExerciseCard({
           </div>
         </div>
         {expanded ? (
-          <ChevronUp className="h-5 w-5 text-zinc-400" />
+          <ChevronUp className="h-5 w-5 text-zinc-400" aria-hidden="true" />
         ) : (
-          <ChevronDown className="h-5 w-5 text-zinc-400" />
+          <ChevronDown className="h-5 w-5 text-zinc-400" aria-hidden="true" />
         )}
       </button>
 
       {expanded && (
-        <div className="mt-3 space-y-3">
+        <div id={`exercise-details-${exercise.id}`} className="mt-3 space-y-3">
           {/* Logged sets with actual vs planned — swipe to delete, tap to edit */}
           {loggedSets.length > 0 && (
             <div className="space-y-1">
@@ -122,6 +129,7 @@ export function ExerciseCard({
                     <SwipeableSetRow
                       key={set.id}
                       setId={set.id!}
+                      setNumber={i + 1}
                       onDelete={onDeleteSet}
                       onTap={() => {
                         if (onEditSet && set.id) {
@@ -256,11 +264,13 @@ export function ExerciseCard({
 
 function SwipeableSetRow({
   setId,
+  setNumber,
   onDelete,
   onTap,
   children,
 }: {
   setId: number;
+  setNumber: number;
   onDelete?: (id: number) => void;
   onTap: () => void;
   children: React.ReactNode;
@@ -269,12 +279,24 @@ function SwipeableSetRow({
   const bgOpacity = useTransform(x, [-100, -50, 0], [1, 0.5, 0]);
   const deleteScale = useTransform(x, [-100, -50, 0], [1, 0.8, 0.5]);
 
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onTap();
+    } else if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      if (onDelete) onDelete(setId);
+    }
+  };
+
   return (
-    <div className="relative overflow-hidden rounded">
+    <div className="relative overflow-hidden rounded group">
       {/* Delete backdrop */}
       <motion.div
         className="absolute inset-y-0 right-0 flex w-20 items-center justify-center bg-red-500"
         style={{ opacity: bgOpacity }}
+        aria-hidden="true"
       >
         <motion.div style={{ scale: deleteScale }}>
           <Trash2 className="h-4 w-4 text-white" />
@@ -282,7 +304,7 @@ function SwipeableSetRow({
       </motion.div>
 
       <motion.div
-        className="relative flex items-center justify-between bg-zinc-50 dark:bg-zinc-800 px-3 py-1.5 text-sm cursor-pointer"
+        className="relative flex items-center justify-between bg-zinc-50 dark:bg-zinc-800 px-3 py-1.5 text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
         style={{ x }}
         drag="x"
         dragConstraints={{ left: -100, right: 0 }}
@@ -293,11 +315,28 @@ function SwipeableSetRow({
           }
         }}
         onClick={onTap}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="button"
+        aria-label={`Set ${setNumber}. Press Enter to edit, Delete to remove`}
         layout
         exit={{ opacity: 0, height: 0, marginBottom: 0 }}
         transition={{ duration: 0.2 }}
       >
         {children}
+        {/* Keyboard-accessible delete button (visible on focus/hover) */}
+        {onDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(setId);
+            }}
+            className="ml-2 p-1 rounded text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
+            aria-label={`Delete set ${setNumber}`}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
       </motion.div>
     </div>
   );
@@ -318,6 +357,8 @@ function InlineSetEdit({
 }) {
   const [weight, setWeight] = useState(set.weight);
   const [reps, setReps] = useState(set.reps);
+  const weightInputId = `edit-weight-${set.id}`;
+  const repsInputId = `edit-reps-${set.id}`;
 
   return (
     <motion.div
@@ -325,39 +366,44 @@ function InlineSetEdit({
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}
+      role="form"
+      aria-label="Edit set"
     >
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <label className="text-xs text-zinc-500 dark:text-zinc-400">Weight ({unit})</label>
+          <label htmlFor={weightInputId} className="text-xs text-zinc-500 dark:text-zinc-400">Weight ({unit})</label>
           <input
+            id={weightInputId}
             type="number"
             inputMode="decimal"
             value={weight || ""}
             onChange={(e) => setWeight(Number(e.target.value) || 0)}
-            className="h-9 w-full rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 text-center text-sm font-semibold text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none"
+            className="h-9 w-full rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 text-center text-sm font-semibold text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
         <div className="w-16">
-          <label className="text-xs text-zinc-500 dark:text-zinc-400">Reps</label>
+          <label htmlFor={repsInputId} className="text-xs text-zinc-500 dark:text-zinc-400">Reps</label>
           <input
+            id={repsInputId}
             type="number"
             inputMode="numeric"
             value={reps || ""}
             onChange={(e) => setReps(Number(e.target.value) || 0)}
-            className="h-9 w-full rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 text-center text-sm font-semibold text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none"
+            className="h-9 w-full rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 text-center text-sm font-semibold text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
         <div className="flex gap-1 pt-4">
           <button
             onClick={() => onSave(weight, reps)}
             disabled={weight <= 0 || reps <= 0}
-            className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50 min-h-[36px]"
           >
             Save
           </button>
           <button
             onClick={onCancel}
-            className="rounded px-2 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+            className="rounded px-2 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 min-h-[36px] min-w-[36px]"
+            aria-label="Cancel editing"
           >
             ✕
           </button>

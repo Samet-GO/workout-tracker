@@ -94,20 +94,24 @@ export function SetLogger({
   }
 
   if (showManual) {
+    const weightInputId = `weight-input-${exerciseId}`;
+    const repsInputId = `reps-input-${exerciseId}`;
+
     return (
-      <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/30 p-3">
+      <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/30 p-3" role="form" aria-label="Log set manually">
         <div className="flex items-center gap-4">
           <div className="flex-1">
-            <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <label htmlFor={weightInputId} className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Weight ({unit})
             </label>
-            <WeightInput value={weight} onChange={setWeight} />
+            <WeightInput id={weightInputId} value={weight} onChange={setWeight} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <label htmlFor={repsInputId} className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Reps
             </label>
             <input
+              id={repsInputId}
               type="number"
               inputMode="numeric"
               value={reps || ""}
@@ -127,7 +131,7 @@ export function SetLogger({
             onClick={handleManualSubmit}
             disabled={weight <= 0 || reps <= 0}
           >
-            <Check className="mr-1 h-4 w-4" />
+            <Check className="mr-1 h-4 w-4" aria-hidden="true" />
             Save Set
           </Button>
           <Button
@@ -137,8 +141,9 @@ export function SetLogger({
               setShowManual(false);
               setSpecialData({});
             }}
+            aria-label="Cancel"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type WorkoutSet } from "@/lib/db";
 import { useRouter } from "next/navigation";
+import { saveBackupLocally } from "@/lib/export";
 
 export function useActiveWorkout() {
   const router = useRouter();
@@ -56,6 +57,14 @@ export function useActiveWorkout() {
     await db.workoutSessions.update(session.id, {
       completedAt: new Date(),
     });
+
+    // Auto-backup after completing workout
+    try {
+      await saveBackupLocally();
+    } catch (e) {
+      console.warn("Auto-backup failed:", e);
+    }
+
     router.push("/workout/complete");
   }
 

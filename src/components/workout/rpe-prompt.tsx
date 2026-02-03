@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { RPE_AUTO_DISMISS_MS } from "@/lib/constants";
 
@@ -35,18 +35,39 @@ function getRpeColor(rpe: number): string {
 export function RpePrompt({ open, onSubmit, onDismiss }: RpePromptProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onDismissRef = useRef(onDismiss);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Keep ref updated without triggering effect
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  }, [onDismiss]);
+
+  // Handle Escape key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      onDismissRef.current();
+    }
+  }, []);
 
   useEffect(() => {
     if (open) {
       setSelected(null);
+      document.addEventListener("keydown", handleKeyDown);
+      // Focus the container for keyboard navigation
+      requestAnimationFrame(() => {
+        containerRef.current?.focus();
+      });
       timerRef.current = setTimeout(() => {
-        onDismiss();
+        onDismissRef.current();
       }, RPE_AUTO_DISMISS_MS);
     }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [open, onDismiss]);
+  }, [open, handleKeyDown]);
 
   function handleSelect(rpe: number) {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -63,6 +84,11 @@ export function RpePrompt({ open, onSubmit, onDismiss }: RpePromptProps) {
     <AnimatePresence>
       {open && (
         <motion.div
+          ref={containerRef}
+          role="dialog"
+          aria-label="Rate Perceived Exertion"
+          aria-describedby="rpe-description"
+          tabIndex={-1}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 30 }}
@@ -74,31 +100,34 @@ export function RpePrompt({ open, onSubmit, onDismiss }: RpePromptProps) {
               handleSwipeDismiss();
             }
           }}
-          className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-lg px-4"
+          className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-lg px-4 focus:outline-none"
         >
           <div className="rounded-2xl bg-white dark:bg-zinc-800 p-4 shadow-xl ring-1 ring-zinc-200 dark:ring-zinc-700">
             <div className="mb-1 flex items-center justify-between">
-              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              <p id="rpe-description" className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 How hard was that?
               </p>
               <button
                 onClick={handleSwipeDismiss}
-                className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Skip RPE rating"
               >
                 Skip
               </button>
             </div>
             {selected !== null && (
-              <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+              <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400" aria-live="polite">
                 RPE {selected} — {getRpeLabel(selected)}
               </p>
             )}
-            <div className="flex gap-1">
+            <div className="flex gap-1" role="group" aria-label="RPE scale from 6 to 10">
               {RPE_VALUES.map((rpe) => (
                 <button
                   key={rpe}
                   onClick={() => handleSelect(rpe)}
-                  className={`flex-1 rounded-lg min-h-[44px] py-2 text-xs font-bold transition-all ${
+                  aria-pressed={selected === rpe}
+                  aria-label={`RPE ${rpe}: ${getRpeLabel(rpe)}`}
+                  className={`flex-1 rounded-lg min-h-[44px] py-2 text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                     selected === rpe
                       ? `${getRpeColor(rpe)} text-white scale-110`
                       : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600"
@@ -111,6 +140,10 @@ export function RpePrompt({ open, onSubmit, onDismiss }: RpePromptProps) {
             {/* Auto-dismiss progress bar */}
             <motion.div
               className="mt-2 h-0.5 rounded-full bg-zinc-200 dark:bg-zinc-600"
+              role="progressbar"
+              aria-label="Time remaining to answer"
+              aria-valuemin={0}
+              aria-valuemax={100}
               initial={{ scaleX: 1 }}
               animate={{ scaleX: 0 }}
               transition={{ duration: RPE_AUTO_DISMISS_MS / 1000, ease: "linear" }}

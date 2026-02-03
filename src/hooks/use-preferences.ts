@@ -9,6 +9,7 @@ const DEFAULT_PREFS: UserPreferences = {
   theme: "system",
   restTimerEnabled: true,
   showRpePrompt: true,
+  showMoodPrompt: true,
   defaultIncrement: 2.5,
 };
 

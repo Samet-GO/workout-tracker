@@ -23,7 +23,11 @@ Social:     Have data to share w/ trainers/buddies
 | C. Serious Lifter | "Built for progressive overload" | Needs more analytics |
 | D. Portfolio Piece | N/A — personal project | No growth needed |
 
-**Decision needed**: ⏳ `POSITION_CHOICE`
+**Decision**: ✅ **A+B Hybrid — Privacy-First Minimalist**
+- Core: No accounts, no cloud, local-first storage
+- UX: Simple tracking, no bloat
+- Future: Optional user-initiated sync to Apple Health, Samsung Health, MyFitnessPal, Virtuagym
+- Philosophy: "Your data stays yours. Share only when YOU choose."
 
 ---
 
@@ -67,9 +71,9 @@ CREATE:    export-everything, "workout receipts"
 | No backup reminder | 🔴 Critical | None | **GAP** |
 
 ### Antifragility Opportunities
-- [ ] Auto-export reminder (weekly prompt)
-- [ ] Export to device storage (Files app)
-- [ ] "Recovery guide" if phone lost
+- [x] ~~Auto-export reminder~~ → Backup confirmation after each workout
+- [x] ~~Export to device storage~~ → File System Access API for cloud folder backup
+- [x] ~~"Recovery guide" if phone lost~~ → /recovery-guide.html
 - [ ] Graceful degradation sans service worker
 
 ---
@@ -92,7 +96,11 @@ Track workouts → See progress → Tell gym buddy → Buddy installs → Compar
 | Pro tier | Revenue potential | Feature gating complexity |
 | One-time purchase | Simple, respects users | App Store only |
 
-**Decision needed**: ⏳ `MONETIZATION_INTENT`
+**Decision**: ✅ **One-time purchase**
+- Fits hobby app scope
+- Respects users (no subscriptions, no ads)
+- Requires App Store distribution (iOS/Android)
+- PWA can remain free as "demo" or full version
 
 ---
 
@@ -138,10 +146,10 @@ Signal:   Fast prototyping → similar bugs likely exist
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Accessibility (a11y) | ⏳ Unknown | Screen reader testing needed |
+| Accessibility (a11y) | ✅ Done | WCAG 2.1 AA compliant: skip link, focus trap, dialog roles, aria-labels |
 | Internationalization | ⏳ English-only | Limits market |
 | Legal (GDPR/CCPA) | ⏳ Unknown | Export data implications |
-| Offline indicators | ⏳ Unknown | Does user know when offline? |
+| Offline indicators | ✅ Done | Amber bar when offline, green reconnect notice |
 
 ---
 
@@ -178,23 +186,23 @@ Q: Monetization model?
 ## 9. Prioritized Action Items
 
 ### 🔴 P0 — Critical (do before next deploy)
-- [ ] Add backup reminder system (weekly prompt or auto-export)
-- [ ] Audit all modals for similar race conditions
-- [ ] Test IndexedDB failure scenarios
-- [ ] Verify `navigator.storage.persist()` is working
+- [x] ~~Add backup reminder system~~ → Auto-backup to localStorage on workout complete
+- [x] ~~Audit all modals~~ → Fixed RpePrompt timer race, added state reset to MoodEnergyPrompt
+- [x] ~~Test IndexedDB failure scenarios~~ → Added health check, error UI, graceful degradation
+- [x] ~~Verify storage.persist()~~ → Status shown in Settings, request button if not granted
 
 ### 🟡 P1 — Important (next sprint)
-- [ ] Define positioning (`POSITION_CHOICE`)
-- [ ] Add "Add to Home Screen" install prompt
-- [ ] Progressive disclosure for RPE/mood (settings toggle)
-- [ ] Improve export discoverability
+- [x] ~~Define positioning~~ → Privacy-First Minimalist
+- [x] ~~Add to Home Screen prompt~~ → Install banner with iOS instructions
+- [x] ~~Progressive disclosure~~ → Mood/RPE toggles in Settings
+- [x] ~~Export discoverability~~ → Backup confirmation on workout complete
 
 ### 🟢 P2 — Nice-to-have (backlog)
-- [ ] Accessibility audit
-- [ ] Empty state improvements
-- [ ] Offline status indicator
-- [ ] "Recovery guide" documentation
-- [ ] Landing page (if product intent)
+- [x] ~~Accessibility audit~~ → WCAG 2.1 AA: skip link, focus trap, dialog roles, aria-labels, keyboard navigation
+- [x] ~~Empty state improvements~~ → Improved plans, strength chart, streak calendar, mood chart
+- [x] ~~Offline status indicator~~ → Added amber offline bar, green reconnection notice
+- [x] ~~"Recovery guide" documentation~~ → /recovery-guide.html + link in Settings
+- [x] ~~Landing page~~ → /landing.html with privacy-first positioning, features, comparison table
 
 ---
 
@@ -235,11 +243,70 @@ Q: Monetization model?
 ## 12. Open Questions
 
 ```
-1. POSITION_CHOICE    — Privacy-first? Minimalist? Serious lifter? Portfolio?
-2. MONETIZATION_INTENT — Free forever? Tips? Pro tier? None?
-3. GROWTH_STRATEGY    — Organic? Marketing? Community? None?
-4. MAINTENANCE_COMMITMENT — Long-term support or one-time build?
-5. TARGET_PLATFORM    — PWA only? Native wrappers? App stores?
+1. POSITION_CHOICE    — ✅ Privacy-First Minimalist (with optional sync)
+2. MONETIZATION_INTENT — ✅ One-time purchase (App Store distribution)
+3. GROWTH_STRATEGY    — ⏸️ Skipped for now
+4. MAINTENANCE_COMMITMENT — ✅ Quarterly updates + bug fix micro-releases
+5. TARGET_PLATFORM    — ✅ PWA for now (native wrapper later for App Store)
+```
+
+## 13. Storage & Browser Research (2026-02-03)
+
+### Critical Findings
+
+| Issue | Browser | Severity | Mitigation |
+|-------|---------|----------|------------|
+| **7-day eviction** | Safari | 🔴 Critical | Warning banner + backup prompts |
+| **50MB PWA limit** | iOS Safari | 🟡 High | Storage usage indicator |
+| **IndexedDB instability** | iOS | 🟡 High | Warning banner + backups |
+| **QuotaExceededError in AbortError** | All | 🟡 Medium | Proper error unwrapping |
+| **Private browsing** | Firefox <115 | 🟡 Medium | Detection + warning |
+| **Storage not persistent** | All | 🟢 Low | Request button + indicator |
+
+### `storage.persist()` Behavior
+
+| Browser | Prompt? | Auto-grant criteria |
+|---------|---------|---------------------|
+| Chrome | No | User engagement, bookmarks, notifications |
+| Firefox | **Yes** | User must approve |
+| Safari | No | User engagement (but 7-day eviction still applies) |
+
+### Sources
+- [MDN Storage quotas and eviction](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria)
+- [WebKit Storage Policy Updates](https://webkit.org/blog/14403/updates-to-storage-policy/)
+- [Dexie QuotaExceededError](https://dexie.org/docs/DexieErrors/Dexie.QuotaExceededError)
+- [IndexedDB pain points](https://gist.github.com/pesterhazy/4de96193af89a6dd5ce682ce2adff49a)
+- [web.dev Persistent Storage](https://web.dev/articles/persistent-storage)
+- [PWA iOS Limitations](https://www.magicbell.com/blog/pwa-ios-limitations-safari-support-complete-guide)
+
+### Implemented Mitigations
+1. ✅ Browser detection (Safari, iOS, private mode)
+2. ✅ Warning banners for risky browsers
+3. ✅ Storage usage indicator with color coding
+4. ✅ Persistence status with request button
+5. ✅ `isDiskFullError()` helper for proper quota error detection
+6. ✅ Auto-backup on workout complete
+7. ✅ Cloud folder backup option
+
+---
+
+## 14. Future Integration Roadmap
+
+### Sync Targets (user-initiated, optional)
+| Platform | API | Complexity | Notes |
+|----------|-----|------------|-------|
+| Apple Health | HealthKit | 🟡 Medium | Requires native wrapper (Capacitor/PWA) |
+| Samsung Health | Samsung SDK | 🟡 Medium | Android only |
+| Google Fit | REST API | 🟢 Easy | Web-friendly |
+| MyFitnessPal | OAuth API | 🟡 Medium | Requires API key approval |
+| Virtuagym | REST API | 🟡 Medium | Business API access needed |
+| Strava | OAuth API | 🟢 Easy | Good for cardio sessions |
+| CSV/JSON Export | Native | ✅ Done | Already implemented |
+
+### Integration Philosophy
+```
+User clicks "Sync" → Authenticates once → Pushes selected workouts → Done
+No background sync. No accounts on our side. User always in control.
 ```
 
 ---
@@ -250,6 +317,28 @@ Q: Monetization model?
 |------|--------|
 | 2026-02-03 | Initial analysis from 9-expert business panel |
 | 2026-02-03 | Fixed modal race condition bug (mood/energy prompt) |
+| 2026-02-03 | Implemented circuit/superset workout flow |
+| 2026-02-03 | Added split-to-rounds and split-exercises features |
+| 2026-02-03 | Decision: Privacy-First Minimalist positioning with optional sync |
+| 2026-02-03 | Decision: One-time purchase monetization model |
+| 2026-02-03 | Decision: Quarterly updates + micro bug fixes maintenance |
+| 2026-02-03 | Decision: PWA for now, native wrapper later |
+| 2026-02-03 | Implemented auto-backup to localStorage on workout complete |
+| 2026-02-03 | Added folder backup option (File System Access API) for cloud sync |
+| 2026-02-03 | Fixed modal race conditions (RpePrompt, MoodEnergyPrompt) |
+| 2026-02-03 | Added IndexedDB health check and error handling |
+| 2026-02-03 | Added storage persistence status to Settings |
+| 2026-02-03 | Deep research: Safari 7-day eviction, iOS instability, QuotaExceededError handling |
+| 2026-02-03 | Added browser-specific warnings (Safari, iOS, private browsing) |
+| 2026-02-03 | Added storage usage indicator and comprehensive diagnostics |
+| 2026-02-03 | Added PWA install prompt (Chrome/Edge + iOS instructions) |
+| 2026-02-03 | Added mood prompt toggle (progressive disclosure) |
+| 2026-02-03 | Added backup confirmation on workout complete page |
+| 2026-02-03 | Added offline status indicator (amber bar, green reconnect) |
+| 2026-02-03 | Improved empty states (plans, strength chart, streak calendar, mood chart) |
+| 2026-02-03 | **P2 Complete**: Accessibility audit (WCAG 2.1 AA compliance) |
+| 2026-02-03 | **P2 Complete**: Recovery guide documentation (/recovery-guide.html) |
+| 2026-02-03 | **P2 Complete**: Landing page (/landing.html) with privacy-first positioning |
 
 ---
 

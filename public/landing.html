@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workout Tracker - Privacy-First Strength Training Logger</title>
+  <meta name="description" content="Free offline workout tracker. No account, no cloud, no subscriptions. Your gym data stays on your device.">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Workout Tracker - Privacy-First Gym Logger">
+  <meta property="og:description" content="Track your lifts offline. No account required. Your data stays yours.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/og-image.png">
+
+  <style>
+    :root {
+      --bg: #fafafa;
+      --bg-card: #ffffff;
+      --text: #18181b;
+      --text-muted: #71717a;
+      --border: #e4e4e7;
+      --accent: #2563eb;
+      --accent-light: #dbeafe;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #09090b;
+        --bg-card: #18181b;
+        --text: #fafafa;
+        --text-muted: #a1a1aa;
+        --border: #27272a;
+        --accent: #3b82f6;
+        --accent-light: #1e3a5f;
+        --success: #22c55e;
+        --success-light: #14532d;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
+    /* Header */
+    header {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 1.125rem;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+    }
+
+    .cta-btn {
+      background: var(--accent);
+      color: white;
+      padding: 0.5rem 1.25rem;
+      border-radius: 9999px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: opacity 0.2s;
+    }
+
+    .cta-btn:hover { opacity: 0.9; }
+
+    /* Hero */
+    .hero {
+      padding: 4rem 0;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      line-height: 1.2;
+    }
+
+    @media (min-width: 640px) {
+      .hero h1 { font-size: 3.5rem; }
+    }
+
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 2rem;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      padding: 0.875rem 2rem;
+      border-radius: 9999px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      padding: 0.875rem 2rem;
+      border-radius: 9999px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    /* Privacy Banner */
+    .privacy-banner {
+      background: var(--success-light);
+      border: 1px solid var(--success);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin: 2rem auto;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .privacy-icon {
+      font-size: 1.5rem;
+    }
+
+    .privacy-text {
+      font-size: 0.875rem;
+      color: var(--text);
+    }
+
+    .privacy-text strong {
+      display: block;
+      margin-bottom: 0.125rem;
+    }
+
+    /* Features Grid */
+    .features {
+      padding: 4rem 0;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 3rem;
+    }
+
+    .features-grid {
+      display: grid;
+      gap: 1.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--accent-light);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* Comparison */
+    .comparison {
+      padding: 4rem 0;
+    }
+
+    .comparison-table {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    .comparison-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .comparison-row:last-child {
+      border-bottom: none;
+    }
+
+    .comparison-cell {
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+    }
+
+    .comparison-header {
+      font-weight: 600;
+      background: var(--border);
+    }
+
+    .comparison-feature {
+      text-align: left;
+      font-weight: 500;
+    }
+
+    .check { color: var(--success); font-weight: bold; }
+    .cross { color: var(--text-muted); }
+
+    /* Install Section */
+    .install {
+      padding: 4rem 0;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .install-steps {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .install-step {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+
+    .step-content h4 {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-content p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* Footer */
+    footer {
+      padding: 2rem 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero, .features, .comparison, .install {
+      animation: fadeIn 0.6s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container header-content">
+      <a href="/" class="logo">
+        <span class="logo-icon">🏋️</span>
+        Workout Tracker
+      </a>
+      <a href="/plans" class="cta-btn">Open App</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Track Your Lifts.<br>Keep Your Privacy.</h1>
+        <p class="hero-subtitle">
+          Free offline workout tracker. No account, no cloud, no subscriptions.
+          Just you and your gains.
+        </p>
+        <div class="hero-cta">
+          <a href="/plans" class="btn-primary">Start Tracking Free</a>
+          <a href="#features" class="btn-secondary">See Features</a>
+        </div>
+
+        <div class="privacy-banner">
+          <span class="privacy-icon">🔒</span>
+          <div class="privacy-text">
+            <strong>Your data never leaves your device</strong>
+            No servers. No tracking. Export anytime.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="features">
+      <div class="container">
+        <h2 class="section-title">Built for Lifters</h2>
+        <p class="section-subtitle">Everything you need. Nothing you don't.</p>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Quick Logging</h3>
+            <p>Match your last set with one tap. Add weight with +2.5 or +5 buttons. Log sets in seconds.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📴</div>
+            <h3>Works Offline</h3>
+            <p>No wifi in the gym? No problem. Everything works offline. Sync nothing, lose nothing.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Progress Charts</h3>
+            <p>See your strength gains over time. Track volume, streaks, and personal records.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h3>Smart Suggestions</h3>
+            <p>Based on your last RPE and energy level, get suggestions for today's weight.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📋</div>
+            <h3>8 Built-in Programs</h3>
+            <p>Coach Greg-inspired templates for beginners to intermediate lifters. 60-90 min workouts.</p>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">💾</div>
+            <h3>Your Data, Your Control</h3>
+            <p>Export anytime as JSON. Backup to iCloud, Google Drive, or Dropbox. You own everything.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="comparison">
+      <div class="container">
+        <h2 class="section-title">Why This App?</h2>
+        <p class="section-subtitle">Compare with popular alternatives</p>
+
+        <div class="comparison-table">
+          <div class="comparison-row">
+            <div class="comparison-cell comparison-header"></div>
+            <div class="comparison-cell comparison-header">This App</div>
+            <div class="comparison-cell comparison-header">Others</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell comparison-feature">No Account Required</div>
+            <div class="comparison-cell check">✓</div>
+            <div class="comparison-cell cross">✗</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell comparison-feature">Works Offline</div>
+            <div class="comparison-cell check">✓</div>
+            <div class="comparison-cell cross">Limited</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell comparison-feature">No Subscription</div>
+            <div class="comparison-cell check">✓</div>
+            <div class="comparison-cell cross">$10+/mo</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell comparison-feature">Data Stays Local</div>
+            <div class="comparison-cell check">✓</div>
+            <div class="comparison-cell cross">Cloud Only</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell comparison-feature">Export Everything</div>
+            <div class="comparison-cell check">✓</div>
+            <div class="comparison-cell cross">Limited</div>
+          </div>
+          <div class="comparison-row">
+            <div class="comparison-cell comparison-feature">No Ads</div>
+            <div class="comparison-cell check">✓</div>
+            <div class="comparison-cell cross">Free tier has ads</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="install">
+      <div class="container">
+        <h2 class="section-title">Install in 30 Seconds</h2>
+        <p class="section-subtitle">No app store needed. Works on any device.</p>
+
+        <div class="install-steps">
+          <div class="install-step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+              <h4>Open the App</h4>
+              <p>Visit this site on your phone's browser</p>
+            </div>
+          </div>
+          <div class="install-step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+              <h4>Add to Home Screen</h4>
+              <p><strong>iPhone:</strong> Tap Share → Add to Home Screen<br>
+              <strong>Android:</strong> Tap menu → Install app</p>
+            </div>
+          </div>
+          <div class="install-step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+              <h4>Start Lifting</h4>
+              <p>Open from your home screen like any other app</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+          <a href="/plans" class="btn-primary">Open App Now</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>
+        Made with 💪 for lifters who value privacy<br>
+        <a href="/recovery-guide.html">Data Recovery Guide</a> ·
+        <a href="https://github.com/Samet-GO/workout-tracker">Source Code</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -18,6 +18,7 @@ import {
   type ExerciseStrengthPoint,
   getExerciseStrengthCurve,
 } from "@/lib/analytics";
+import { TrendingUp } from "lucide-react";
 
 const TIME_RANGES: { value: TimeRange; label: string }[] = [
   { value: "30d", label: "30D" },
@@ -58,26 +59,31 @@ export function StrengthChart() {
   return (
     <div className="space-y-3">
       {/* Exercise selector */}
-      <select
-        value={exerciseId ?? ""}
-        onChange={(e) => setExerciseId(Number(e.target.value) || null)}
-        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-      >
-        <option value="">Select exercise...</option>
-        {(exercisesWithSets ?? []).map((e) => (
-          <option key={e.id} value={e.id}>
-            {e.name}
-          </option>
-        ))}
-      </select>
+      <div>
+        <label htmlFor="exercise-select" className="sr-only">Select exercise to view strength progress</label>
+        <select
+          id="exercise-select"
+          value={exerciseId ?? ""}
+          onChange={(e) => setExerciseId(Number(e.target.value) || null)}
+          className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        >
+          <option value="">Select exercise...</option>
+          {(exercisesWithSets ?? []).map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* Time range */}
-      <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
+      <div className="flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800" role="group" aria-label="Time range">
         {TIME_RANGES.map((tr) => (
           <button
             key={tr.value}
             onClick={() => setRange(tr.value)}
-            className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+            aria-pressed={range === tr.value}
+            className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors min-h-[36px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 ${
               range === tr.value
                 ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100"
                 : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
@@ -89,7 +95,19 @@ export function StrengthChart() {
       </div>
 
       {/* Chart */}
-      {data.length >= 2 ? (
+      {!exercisesWithSets?.length ? (
+        <div className="py-8 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+            <TrendingUp className="h-6 w-6 text-zinc-400" />
+          </div>
+          <p className="mb-1 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+            No exercise data yet
+          </p>
+          <p className="text-xs text-zinc-400">
+            Complete a workout to track your strength progress
+          </p>
+        </div>
+      ) : data.length >= 2 ? (
         <div className="h-52">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
@@ -134,13 +152,23 @@ export function StrengthChart() {
           </ResponsiveContainer>
         </div>
       ) : data.length === 1 ? (
-        <p className="py-6 text-center text-sm text-zinc-400">
-          Need at least 2 sessions to show trend
-        </p>
+        <div className="py-6 text-center">
+          <p className="mb-1 text-sm text-zinc-500 dark:text-zinc-400">
+            One session logged
+          </p>
+          <p className="text-xs text-zinc-400">
+            Complete another workout to see your strength trend
+          </p>
+        </div>
       ) : exerciseId ? (
-        <p className="py-6 text-center text-sm text-zinc-400">
-          No data for this exercise in this period
-        </p>
+        <div className="py-6 text-center">
+          <p className="mb-1 text-sm text-zinc-500 dark:text-zinc-400">
+            No data in this time range
+          </p>
+          <p className="text-xs text-zinc-400">
+            Try selecting a longer time period above
+          </p>
+        </div>
       ) : null}
     </div>
   );

@@ -95,7 +95,7 @@ export default function WorkoutPage() {
 
   // Check if mood/energy prompt needed (no mood set yet on active session)
   const needsMoodPrompt =
-    !!session && session.mood === undefined && sets.length === 0;
+    !!session && session.mood === undefined && sets.length === 0 && prefs.showMoodPrompt;
 
   // Show mood prompt when workout starts and no sets logged yet
   // Use ref to prevent re-showing after submit (live query delay race condition)
@@ -296,6 +296,149 @@ export default function WorkoutPage() {
           );
           if (partExercises.length === 0) return null;
 
+          const isCircuit = part.structure === "circuit";
+          const isSuperset = part.structure === "superset";
+
+          // For circuit/superset: organize by rounds
+          if (isCircuit || isSuperset) {
+            // Calculate max sets needed
+            const maxSets = Math.max(
+              ...partExercises.map((item) => item.templateExercise.targetSets)
+            );
+
+            // For each round, show all exercises
+            const rounds = Array.from({ length: maxSets }, (_, roundIdx) => roundIdx + 1);
+
+            return (
+              <div key={part.id}>
+                <div className="mb-2 flex items-center gap-2">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+                    {part.name}
+                  </h3>
+                  <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+                    {part.structure?.replace(/-/g, " ")}
+                  </Badge>
+                </div>
+
+                {rounds.map((roundNum) => {
+                  // Check if this round is complete (all exercises have this set logged)
+                  const roundComplete = partExercises.every((item) => {
+                    if (!item.exercise) return true;
+                    const logged = sets.filter(
+                      (s) => s.templateExerciseId === item.templateExercise.id
+                    ).length;
+                    return logged >= roundNum;
+                  });
+
+                  // Check if previous round is complete (to know if this round is active)
+                  const prevRoundComplete = roundNum === 1 || partExercises.every((item) => {
+                    if (!item.exercise) return true;
+                    const logged = sets.filter(
+                      (s) => s.templateExerciseId === item.templateExercise.id
+                    ).length;
+                    return logged >= roundNum - 1;
+                  });
+
+                  const isActiveRound = prevRoundComplete && !roundComplete;
+
+                  return (
+                    <div
+                      key={roundNum}
+                      className={`mb-3 rounded-lg border-2 p-3 transition-colors ${
+                        roundComplete
+                          ? "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/20"
+                          : isActiveRound
+                            ? "border-blue-300 bg-blue-50/50 dark:border-blue-700 dark:bg-blue-900/20"
+                            : "border-zinc-200 bg-zinc-50/50 dark:border-zinc-700 dark:bg-zinc-800/50"
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className={`text-xs font-bold uppercase tracking-wider ${
+                          roundComplete
+                            ? "text-green-600 dark:text-green-400"
+                            : isActiveRound
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-zinc-400"
+                        }`}>
+                          Round {roundNum}
+                        </span>
+                        {roundComplete && (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        {partExercises.map((item) => {
+                          // Skip if exercise doesn't need this many sets
+                          if (item.templateExercise.targetSets < roundNum) return null;
+
+                          // Choice exercise not yet selected
+                          if (item.templateExercise.isChoice && !item.isChoiceResolved) {
+                            return (
+                              <Card key={`${item.templateExercise.id}-${roundNum}`} className="p-3">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                                    Pick a{" "}
+                                    <span className="capitalize">
+                                      {item.templateExercise.choiceMuscleGroup}
+                                    </span>{" "}
+                                    exercise
+                                  </p>
+                                  <Button size="sm" onClick={() => openPicker(item.templateExercise)}>
+                                    Choose
+                                  </Button>
+                                </div>
+                              </Card>
+                            );
+                          }
+
+                          if (!item.exercise) return null;
+
+                          const loggedSets = sets.filter(
+                            (s) => s.templateExerciseId === item.templateExercise.id
+                          );
+                          const thisSetLogged = loggedSets.length >= roundNum;
+                          const canLogThisSet = loggedSets.length === roundNum - 1 && isActiveRound;
+
+                          return (
+                            <ExerciseCard
+                              key={`${item.templateExercise.id}-${roundNum}`}
+                              exercise={item.exercise}
+                              templateExercise={{
+                                ...item.templateExercise,
+                                targetSets: 1, // Show as single set for circuit
+                              }}
+                              loggedSets={loggedSets.slice(roundNum - 1, roundNum)}
+                              previousSets={getPreviousForExercise(item.exercise.id!)}
+                              onLogSet={(weight, reps, special) =>
+                                handleLogSet(
+                                  item.exercise!.id!,
+                                  item.templateExercise.id,
+                                  weight,
+                                  reps,
+                                  special
+                                )
+                              }
+                              onDeleteSet={(setId) => deleteSet(setId)}
+                              onEditSet={(setId, weight, reps) =>
+                                updateSet(setId, { weight, reps })
+                              }
+                              energy={session.energy}
+                              unit={prefs.weightUnit}
+                              initialExpanded={canLogThisSet}
+                              disabled={thisSetLogged || !prevRoundComplete}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          }
+
+          // Default: straight sets (original behavior)
           return (
             <div key={part.id}>
               <div className="mb-2 flex items-center gap-2">
@@ -321,7 +464,7 @@ export default function WorkoutPage() {
                       <Card key={item.templateExercise.id}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-zinc-600">
+                            <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
                               Pick a{" "}
                               <span className="capitalize">
                                 {item.templateExercise.choiceMuscleGroup}

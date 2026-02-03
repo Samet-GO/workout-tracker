@@ -1,16 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Upload } from "lucide-react";
+import { Download, Upload, FolderOpen, Check, X, HelpCircle } from "lucide-react";
+import Link from "next/link";
 import { usePreferences } from "@/hooks/use-preferences";
-import { exportAllData, downloadJson, importData } from "@/lib/export";
+import {
+  exportAllData,
+  downloadJson,
+  importData,
+  isFileSystemAccessSupported,
+  saveToFolder,
+  pickBackupFolder,
+  hasStoredFolder,
+  clearStoredFolder,
+  getBackupMeta,
+} from "@/lib/export";
+import { checkDatabaseHealth, requestPersistentStorage, getStorageEstimate, isSafari } from "@/lib/db";
 
 export default function SettingsPage() {
   const { prefs, updatePreferences } = usePreferences();
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [folderStatus, setFolderStatus] = useState<string | null>(null);
+  const [hasFolder, setHasFolder] = useState(false);
+  const [backupMeta, setBackupMeta] = useState<{ savedAt: string; sessionCount: number } | null>(null);
+  const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null);
+  const [persistRequestStatus, setPersistRequestStatus] = useState<string | null>(null);
+  const [storageUsed, setStorageUsed] = useState<{ used: number; quota: number; percentUsed: number } | null>(null);
+  const [showSafariWarning, setShowSafariWarning] = useState(false);
+  const supportsFileSystem = typeof window !== "undefined" && isFileSystemAccessSupported();
+
+  useEffect(() => {
+    hasStoredFolder().then(setHasFolder);
+    setBackupMeta(getBackupMeta());
+    checkDatabaseHealth().then((health) => {
+      setStoragePersisted(health.persisted ?? null);
+    });
+    getStorageEstimate().then(setStorageUsed);
+    setShowSafariWarning(isSafari());
+  }, []);
 
   return (
     <div>
@@ -84,13 +114,43 @@ export default function SettingsPage() {
                     restTimerEnabled: !prefs.restTimerEnabled,
                   })
                 }
+                role="switch"
+                aria-checked={prefs.restTimerEnabled}
                 className={`relative h-7 w-12 rounded-full transition-colors ${
-                  prefs.restTimerEnabled ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-700"
+                  prefs.restTimerEnabled ? "bg-blue-600" : "bg-zinc-400 dark:bg-zinc-600"
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
                     prefs.restTimerEnabled
+                      ? "translate-x-5"
+                      : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Mood/Energy Prompt */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Mood Prompt</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Ask mood/energy at workout start</p>
+              </div>
+              <button
+                onClick={() =>
+                  updatePreferences({
+                    showMoodPrompt: !prefs.showMoodPrompt,
+                  })
+                }
+                role="switch"
+                aria-checked={prefs.showMoodPrompt}
+                className={`relative h-7 w-12 rounded-full transition-colors ${
+                  prefs.showMoodPrompt ? "bg-blue-600" : "bg-zinc-400 dark:bg-zinc-600"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
+                    prefs.showMoodPrompt
                       ? "translate-x-5"
                       : "translate-x-0.5"
                   }`}
@@ -110,12 +170,14 @@ export default function SettingsPage() {
                     showRpePrompt: !prefs.showRpePrompt,
                   })
                 }
+                role="switch"
+                aria-checked={prefs.showRpePrompt}
                 className={`relative h-7 w-12 rounded-full transition-colors ${
-                  prefs.showRpePrompt ? "bg-blue-600" : "bg-zinc-300 dark:bg-zinc-700"
+                  prefs.showRpePrompt ? "bg-blue-600" : "bg-zinc-400 dark:bg-zinc-600"
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
                     prefs.showRpePrompt
                       ? "translate-x-5"
                       : "translate-x-0.5"
@@ -159,10 +221,107 @@ export default function SettingsPage() {
             Workout Tracker v1.0 — Offline-first PWA for strength training.
             All data is stored locally on your device.
           </p>
+
+          {showSafariWarning && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-2 dark:border-amber-800 dark:bg-amber-900/20">
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                ⚠️ Safari may delete data after 7 days of inactivity. Enable cloud backup below to protect your workouts.
+              </p>
+            </div>
+          )}
+
+          <div className="mt-3 space-y-2">
+            {/* Persistence status */}
+            <div className="flex items-center gap-2">
+              <div
+                className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${
+                  storagePersisted === null
+                    ? "bg-zinc-400 dark:bg-zinc-500"
+                    : storagePersisted
+                      ? "bg-green-500"
+                      : "bg-amber-500"
+                }`}
+              />
+              <p className="flex-1 text-xs text-zinc-500 dark:text-zinc-400">
+                {storagePersisted === null
+                  ? "Checking storage..."
+                  : storagePersisted
+                    ? "Storage persistent — data protected"
+                    : "Storage not persistent — browser may delete data"}
+              </p>
+              {storagePersisted === false && (
+                <button
+                  onClick={async () => {
+                    setPersistRequestStatus("Requesting...");
+                    try {
+                      const granted = await requestPersistentStorage();
+                      setStoragePersisted(granted);
+                      setPersistRequestStatus(
+                        granted
+                          ? "Granted!"
+                          : "Denied by browser. Try installing as app."
+                      );
+                      setTimeout(() => setPersistRequestStatus(null), 3000);
+                    } catch {
+                      setPersistRequestStatus("Error requesting storage");
+                      setTimeout(() => setPersistRequestStatus(null), 3000);
+                    }
+                  }}
+                  className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400 whitespace-nowrap"
+                >
+                  Request
+                </button>
+              )}
+            </div>
+            {persistRequestStatus && (
+              <p className={`text-xs ${
+                persistRequestStatus.includes("Granted")
+                  ? "text-green-600 dark:text-green-400"
+                  : persistRequestStatus.includes("Denied") || persistRequestStatus.includes("Error")
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-zinc-500"
+              }`}>
+                {persistRequestStatus}
+              </p>
+            )}
+
+            {/* Storage usage */}
+            {storageUsed && storageUsed.quota > 0 && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-400">
+                  <span>Storage used</span>
+                  <span>
+                    {(storageUsed.used / 1024 / 1024).toFixed(1)} MB / {(storageUsed.quota / 1024 / 1024).toFixed(0)} MB
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700">
+                  <div
+                    className={`h-full rounded-full ${
+                      storageUsed.percentUsed > 80
+                        ? "bg-red-500"
+                        : storageUsed.percentUsed > 50
+                          ? "bg-amber-500"
+                          : "bg-green-500"
+                    }`}
+                    style={{ width: `${Math.min(storageUsed.percentUsed, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </Card>
 
         <Card>
-          <h3 className="mb-3 font-semibold text-zinc-900 dark:text-zinc-100">Data</h3>
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Data</h3>
+            <Link
+              href="/recovery-guide.html"
+              className="flex items-center gap-1 text-xs text-blue-600 hover:underline dark:text-blue-400"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              Recovery Guide
+            </Link>
+          </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -225,6 +384,121 @@ export default function SettingsPage() {
               </p>
             )}
           </div>
+        </Card>
+
+        {supportsFileSystem && (
+          <Card>
+            <h3 className="mb-3 font-semibold text-zinc-900 dark:text-zinc-100">Cloud Folder Backup</h3>
+            <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+              Save backups to a folder on your device. Pick a synced folder (Google Drive, OneDrive, Dropbox) to auto-backup to the cloud.
+            </p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Backup Folder</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {hasFolder ? "Folder selected" : "No folder selected"}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  {hasFolder && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        await clearStoredFolder();
+                        setHasFolder(false);
+                        setFolderStatus("Folder cleared");
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      const handle = await pickBackupFolder();
+                      if (handle) {
+                        setHasFolder(true);
+                        setFolderStatus("Folder selected");
+                      }
+                    }}
+                  >
+                    <FolderOpen className="mr-1 h-4 w-4" />
+                    {hasFolder ? "Change" : "Select"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Save Backup Now</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    Export to selected folder
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!hasFolder}
+                  onClick={async () => {
+                    setFolderStatus("Saving...");
+                    const result = await saveToFolder();
+                    setFolderStatus(
+                      result.success
+                        ? "Backup saved!"
+                        : `Error: ${result.error}`
+                    );
+                  }}
+                >
+                  <Download className="mr-1 h-4 w-4" />
+                  Save
+                </Button>
+              </div>
+
+              {folderStatus && (
+                <p
+                  className={`text-xs ${
+                    folderStatus.startsWith("Error")
+                      ? "text-red-500"
+                      : "text-green-600 dark:text-green-400"
+                  }`}
+                >
+                  {folderStatus}
+                </p>
+              )}
+            </div>
+          </Card>
+        )}
+
+        <Card>
+          <h3 className="mb-2 font-semibold text-zinc-900 dark:text-zinc-100">Auto-Backup Status</h3>
+          {backupMeta ? (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <p className="text-xs text-zinc-600 dark:text-zinc-300">
+                  Last backup: {new Date(backupMeta.savedAt).toLocaleString()}
+                </p>
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                {backupMeta.sessionCount} workout{backupMeta.sessionCount !== 1 ? "s" : ""} saved locally
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-2 w-2 rounded-full bg-zinc-400 dark:bg-zinc-500" />
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  No backup yet
+                </p>
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                A backup is automatically created after each completed workout.
+              </p>
+            </>
+          )}
         </Card>
       </div>
     </div>

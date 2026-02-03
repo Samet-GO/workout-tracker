@@ -89,6 +89,7 @@ export interface UserPreferences {
   theme: "light" | "dark" | "system";
   restTimerEnabled: boolean;
   showRpePrompt: boolean;
+  showMoodPrompt: boolean;
   defaultIncrement: number;
   seedVersion?: number;
 }
@@ -120,3 +121,144 @@ class WorkoutDB extends Dexie {
 }
 
 export const db = new WorkoutDB();
+
+// Error handling for database operations
+db.on("blocked", () => {
+  console.warn("Database blocked - another tab may have an older version open");
+});
+
+// Detect Safari (for 7-day eviction warning)
+export function isSafari(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent.toLowerCase();
+  return ua.includes("safari") && !ua.includes("chrome") && !ua.includes("chromium");
+}
+
+// Detect iOS
+export function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+// Detect private browsing (best effort)
+export async function isPrivateBrowsing(): Promise<boolean> {
+  // Firefox <115 private mode: IndexedDB throws specific error
+  // Firefox 115+: Works but data lost on restart
+  // Safari: storage.estimate() returns 0 quota in private mode
+  try {
+    if (navigator.storage?.estimate) {
+      const estimate = await navigator.storage.estimate();
+      // Safari private mode reports 0 quota
+      if (estimate.quota === 0) return true;
+    }
+  } catch {
+    // Ignore
+  }
+  return false;
+}
+
+// Get storage estimate
+export async function getStorageEstimate(): Promise<{
+  used: number;
+  quota: number;
+  percentUsed: number;
+} | null> {
+  if (!navigator.storage?.estimate) return null;
+  try {
+    const estimate = await navigator.storage.estimate();
+    const used = estimate.usage ?? 0;
+    const quota = estimate.quota ?? 0;
+    return {
+      used,
+      quota,
+      percentUsed: quota > 0 ? (used / quota) * 100 : 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Check database health with comprehensive diagnostics
+export async function checkDatabaseHealth(): Promise<{
+  ok: boolean;
+  error?: string;
+  persisted?: boolean;
+  isPrivate?: boolean;
+  isSafari?: boolean;
+  isIOS?: boolean;
+  storageEstimate?: { used: number; quota: number; percentUsed: number } | null;
+}> {
+  const safari = isSafari();
+  const ios = isIOS();
+
+  try {
+    // Try a simple read operation
+    await db.userPreferences.count();
+
+    // Check storage persistence
+    let persisted = false;
+    if (navigator.storage?.persisted) {
+      persisted = await navigator.storage.persisted();
+    }
+
+    const isPrivate = await isPrivateBrowsing();
+    const storageEstimate = await getStorageEstimate();
+
+    return {
+      ok: true,
+      persisted,
+      isPrivate,
+      isSafari: safari,
+      isIOS: ios,
+      storageEstimate,
+    };
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : "Database unavailable";
+
+    // Detect Firefox private browsing specific error
+    if (errorMessage.includes("mutation operation")) {
+      return {
+        ok: false,
+        error: "Private browsing mode detected. Data cannot be saved.",
+        isPrivate: true,
+        isSafari: safari,
+        isIOS: ios,
+      };
+    }
+
+    return {
+      ok: false,
+      error: errorMessage,
+      isSafari: safari,
+      isIOS: ios,
+    };
+  }
+}
+
+// Request persistent storage
+export async function requestPersistentStorage(): Promise<boolean> {
+  if (navigator.storage?.persist) {
+    return navigator.storage.persist();
+  }
+  return false;
+}
+
+// Handle Dexie errors properly (QuotaExceededError can be wrapped in AbortError)
+export function isDiskFullError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  const err = error as { name?: string; inner?: unknown; message?: string };
+
+  // Direct QuotaExceededError
+  if (err.name === "QuotaExceededError") return true;
+
+  // QuotaExceededError wrapped in AbortError (common in some browsers)
+  if (err.name === "AbortError" && err.inner) {
+    return isDiskFullError(err.inner);
+  }
+
+  // Check message as fallback
+  if (err.message?.toLowerCase().includes("quota")) return true;
+
+  return false;
+}

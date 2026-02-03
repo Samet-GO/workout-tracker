@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Recovery Guide - Workout Tracker</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --text: #18181b;
+      --text-muted: #71717a;
+      --border: #e4e4e7;
+      --accent: #2563eb;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #09090b;
+        --text: #fafafa;
+        --text-muted: #a1a1aa;
+        --border: #27272a;
+        --accent: #3b82f6;
+        --success: #22c55e;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 1rem;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.25rem; margin: 1.5rem 0 0.75rem; color: var(--accent); }
+    h3 { font-size: 1rem; margin: 1rem 0 0.5rem; }
+    p { margin-bottom: 0.75rem; color: var(--text-muted); }
+    ul, ol { margin-left: 1.25rem; margin-bottom: 1rem; color: var(--text-muted); }
+    li { margin-bottom: 0.5rem; }
+    code {
+      background: var(--border);
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+      font-size: 0.875rem;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .card-success { border-color: var(--success); background: rgba(22, 163, 74, 0.1); }
+    .card-warning { border-color: var(--warning); background: rgba(217, 119, 6, 0.1); }
+    .card-danger { border-color: var(--danger); background: rgba(220, 38, 38, 0.1); }
+    .badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .badge-success { background: var(--success); color: white; }
+    .badge-warning { background: var(--warning); color: white; }
+    .badge-danger { background: var(--danger); color: white; }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1rem;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .back-link:hover { text-decoration: underline; }
+    details { margin-bottom: 1rem; }
+    summary {
+      cursor: pointer;
+      font-weight: 600;
+      padding: 0.5rem 0;
+      color: var(--text);
+    }
+    summary:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <a href="/" class="back-link">&larr; Back to App</a>
+
+  <h1>Data Recovery Guide</h1>
+  <p>Lost your workout data? Here's how to recover it.</p>
+
+  <h2>Quick Recovery Steps</h2>
+
+  <div class="card card-success">
+    <h3><span class="badge badge-success">Best</span> Restore from Backup File</h3>
+    <p>If you exported a backup file (JSON), you can restore everything:</p>
+    <ol>
+      <li>Go to <strong>Settings</strong> (gear icon)</li>
+      <li>Scroll to <strong>Data Management</strong></li>
+      <li>Tap <strong>Import Data</strong></li>
+      <li>Select your backup file (<code>workout-data-*.json</code>)</li>
+      <li>Confirm the import</li>
+    </ol>
+    <p><strong>Tip:</strong> Your data exports are complete backups including all workouts, exercises, and settings.</p>
+  </div>
+
+  <div class="card card-success">
+    <h3><span class="badge badge-success">Best</span> Restore from Cloud Folder</h3>
+    <p>If you set up automatic cloud backup (iCloud Drive, Google Drive, Dropbox, OneDrive):</p>
+    <ol>
+      <li>Open your cloud storage app</li>
+      <li>Navigate to <strong>Workout Tracker Backups</strong> folder</li>
+      <li>Find the most recent <code>workout-backup-*.json</code> file</li>
+      <li>Download it to your device</li>
+      <li>Import it using the steps above</li>
+    </ol>
+  </div>
+
+  <div class="card card-warning">
+    <h3><span class="badge badge-warning">Partial</span> Restore from Local Backup</h3>
+    <p>The app automatically saves a backup after each workout. This backup is limited:</p>
+    <ul>
+      <li>Only contains your <strong>most recent workout</strong></li>
+      <li>Stored in browser's localStorage (smaller, more reliable)</li>
+      <li>Cleared if you clear browser data</li>
+    </ul>
+    <p>To check if a local backup exists:</p>
+    <ol>
+      <li>Open browser DevTools (F12 or right-click → Inspect)</li>
+      <li>Go to <strong>Application</strong> → <strong>Local Storage</strong></li>
+      <li>Look for <code>workout-local-backup</code></li>
+      <li>Copy the value and save it as a .json file</li>
+    </ol>
+  </div>
+
+  <h2>Why Did I Lose Data?</h2>
+
+  <details>
+    <summary>Safari / iOS Users</summary>
+    <div class="card card-danger">
+      <p><strong>Safari has a 7-day eviction policy.</strong></p>
+      <p>If you don't visit the app for 7 days, Safari may delete your workout data to free up space. This is a browser limitation, not a bug in the app.</p>
+      <h4>Prevention:</h4>
+      <ul>
+        <li>Install the app to your Home Screen (makes data persistent)</li>
+        <li>Visit the app at least once a week</li>
+        <li>Set up cloud folder backup in Settings</li>
+        <li>Export regularly to Files app</li>
+      </ul>
+    </div>
+  </details>
+
+  <details>
+    <summary>Phone Lost or Broken</summary>
+    <div class="card">
+      <p>Your workout data was stored locally on your device. Without a backup, recovery options are limited:</p>
+      <ul>
+        <li><strong>iPhone:</strong> Check iCloud backups if you had the PWA installed</li>
+        <li><strong>Android:</strong> Check Google Drive auto-backup</li>
+        <li><strong>Cloud folder:</strong> If you set up cloud backup, check that folder</li>
+      </ul>
+      <p><strong>Prevention:</strong> Always set up cloud folder backup or export regularly.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Cleared Browser Data</summary>
+    <div class="card">
+      <p>If you cleared cookies/site data, IndexedDB data was also deleted.</p>
+      <ul>
+        <li>Check cloud folder for backups</li>
+        <li>Check Downloads folder for exported files</li>
+        <li>Check email for any backup files you sent yourself</li>
+      </ul>
+    </div>
+  </details>
+
+  <details>
+    <summary>Private/Incognito Mode</summary>
+    <div class="card card-warning">
+      <p>Private browsing mode doesn't persist data. When you close the private window, all data is deleted.</p>
+      <p><strong>Solution:</strong> Use regular browsing mode and install the app to your Home Screen.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Browser Update Deleted Data</summary>
+    <div class="card">
+      <p>This is rare but can happen. Some browser updates or storage quota changes can affect IndexedDB.</p>
+      <p><strong>Prevention:</strong> Request persistent storage in Settings and maintain regular backups.</p>
+    </div>
+  </details>
+
+  <h2>Prevention Checklist</h2>
+
+  <div class="card">
+    <ul>
+      <li><strong>Install as App:</strong> Add to Home Screen for better data persistence</li>
+      <li><strong>Request Persistent Storage:</strong> Check Settings → Storage Status</li>
+      <li><strong>Set Up Cloud Backup:</strong> Settings → Backup to Cloud Folder</li>
+      <li><strong>Export After Milestones:</strong> After PRs, weekly, or monthly</li>
+      <li><strong>Don't Use Private Mode:</strong> Data won't persist</li>
+      <li><strong>Visit Weekly:</strong> Safari users especially (7-day eviction policy)</li>
+    </ul>
+  </div>
+
+  <h2>Browser-Specific Notes</h2>
+
+  <details>
+    <summary>Safari (iOS & macOS)</summary>
+    <ul>
+      <li>7-day eviction policy for unused sites</li>
+      <li>50MB storage limit for PWAs</li>
+      <li>IndexedDB can be unreliable in some iOS versions</li>
+      <li><strong>Recommendation:</strong> Install as PWA + cloud backup</li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>Chrome / Edge</summary>
+    <ul>
+      <li>More generous storage quotas</li>
+      <li>Persistent storage usually auto-granted for installed PWAs</li>
+      <li>Most reliable for this app</li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>Firefox</summary>
+    <ul>
+      <li>Will prompt to grant persistent storage (say Yes!)</li>
+      <li>Private browsing completely disables storage</li>
+      <li>Good IndexedDB support overall</li>
+    </ul>
+  </details>
+
+  <h2>Still Need Help?</h2>
+
+  <p>If none of these options work, unfortunately the data may be unrecoverable. The app stores data locally for privacy - there's no server backup.</p>
+
+  <p><strong>Going forward:</strong> Set up cloud folder backup to prevent future data loss. Your workout history is valuable - protect it!</p>
+
+  <p style="margin-top: 2rem; font-size: 0.875rem; color: var(--text-muted);">
+    <em>This app respects your privacy. Your data never leaves your device unless you explicitly export or sync it.</em>
+  </p>
+</body>
+</html>

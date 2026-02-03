@@ -15,6 +15,7 @@ import {
   getMoodEnergyInsights,
   type MoodEnergyInsight,
 } from "@/lib/analytics";
+import { Heart } from "lucide-react";
 
 const MOOD_LABELS = ["", "\u{1F62B}", "\u{1F615}", "\u{1F610}", "\u{1F642}", "\u{1F604}"];
 
@@ -27,9 +28,18 @@ export function MoodEnergyChart() {
 
   if (data.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-zinc-400">
-        Log mood &amp; energy at workout start to see insights here.
-      </p>
+      <div className="py-6 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+          <Heart className="h-6 w-6 text-zinc-400" />
+        </div>
+        <p className="mb-1 text-sm text-zinc-600 dark:text-zinc-400">
+          No mood/energy data yet
+        </p>
+        <p className="text-xs text-zinc-400">
+          Enable &quot;Mood prompt&quot; in Settings to track how you feel
+          before workouts and discover performance patterns.
+        </p>
+      </div>
     );
   }
 
