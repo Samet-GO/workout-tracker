@@ -10,7 +10,7 @@ interface RpePromptProps {
   onDismiss: () => void;
 }
 
-const RPE_VALUES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10] as const;
+const RPE_VALUES = [6, 7, 8, 9, 10] as const;
 
 const RPE_LABELS: Record<number, string> = {
   6: "Easy",
@@ -25,10 +25,10 @@ function getRpeLabel(rpe: number): string {
 }
 
 function getRpeColor(rpe: number): string {
-  if (rpe <= 6.5) return "bg-green-500";
-  if (rpe <= 7.5) return "bg-lime-500";
-  if (rpe <= 8.5) return "bg-amber-500";
-  if (rpe <= 9.5) return "bg-orange-500";
+  if (rpe <= 6) return "bg-green-500";
+  if (rpe <= 7) return "bg-lime-500";
+  if (rpe <= 8) return "bg-amber-500";
+  if (rpe <= 9) return "bg-orange-500";
   return "bg-red-500";
 }
 
@@ -76,20 +76,20 @@ export function RpePrompt({ open, onSubmit, onDismiss }: RpePromptProps) {
           }}
           className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-lg px-4"
         >
-          <div className="rounded-2xl bg-white p-4 shadow-xl ring-1 ring-zinc-200">
+          <div className="rounded-2xl bg-white dark:bg-zinc-800 p-4 shadow-xl ring-1 ring-zinc-200 dark:ring-zinc-700">
             <div className="mb-1 flex items-center justify-between">
-              <p className="text-sm font-semibold text-zinc-900">
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 How hard was that?
               </p>
               <button
                 onClick={handleSwipeDismiss}
-                className="text-xs text-zinc-400 hover:text-zinc-600"
+                className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
               >
                 Skip
               </button>
             </div>
             {selected !== null && (
-              <p className="mb-2 text-xs text-zinc-500">
+              <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
                 RPE {selected} — {getRpeLabel(selected)}
               </p>
             )}
@@ -101,16 +101,16 @@ export function RpePrompt({ open, onSubmit, onDismiss }: RpePromptProps) {
                   className={`flex-1 rounded-lg min-h-[44px] py-2 text-xs font-bold transition-all ${
                     selected === rpe
                       ? `${getRpeColor(rpe)} text-white scale-110`
-                      : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                      : "bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600"
                   }`}
                 >
-                  {rpe % 1 === 0 ? rpe : ""}
+                  {rpe}
                 </button>
               ))}
             </div>
             {/* Auto-dismiss progress bar */}
             <motion.div
-              className="mt-2 h-0.5 rounded-full bg-zinc-200"
+              className="mt-2 h-0.5 rounded-full bg-zinc-200 dark:bg-zinc-600"
               initial={{ scaleX: 1 }}
               animate={{ scaleX: 0 }}
               transition={{ duration: RPE_AUTO_DISMISS_MS / 1000, ease: "linear" }}

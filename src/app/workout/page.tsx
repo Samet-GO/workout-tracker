@@ -356,7 +356,7 @@ export default function WorkoutPage() {
                       exercise={item.exercise}
                       templateExercise={item.templateExercise}
                       loggedSets={sets.filter(
-                        (s) => s.exerciseId === item.exercise!.id
+                        (s) => s.templateExerciseId === item.templateExercise.id
                       )}
                       previousSets={getPreviousForExercise(
                         item.exercise.id!
