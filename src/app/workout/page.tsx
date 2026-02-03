@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Exercise, type TemplateExercise } from "@/lib/db";
 import { useActiveWorkout } from "@/hooks/use-active-workout";
@@ -34,6 +34,7 @@ export default function WorkoutPage() {
 
   // Mood/energy prompt state
   const [showMoodPrompt, setShowMoodPrompt] = useState(false);
+  const moodPromptHandledRef = useRef(false);
 
   // Exercise picker state for choice exercises
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -97,21 +98,33 @@ export default function WorkoutPage() {
     !!session && session.mood === undefined && sets.length === 0;
 
   // Show mood prompt when workout starts and no sets logged yet
+  // Use ref to prevent re-showing after submit (live query delay race condition)
   useEffect(() => {
-    if (needsMoodPrompt && !showMoodPrompt) {
+    if (needsMoodPrompt && !showMoodPrompt && !moodPromptHandledRef.current) {
       setShowMoodPrompt(true);
     }
   }, [needsMoodPrompt, showMoodPrompt]);
 
+  // Reset ref when session changes (new workout)
+  useEffect(() => {
+    moodPromptHandledRef.current = false;
+  }, [session?.id]);
+
   const handleMoodSubmit = useCallback(
     async (mood: number, energy: number) => {
+      moodPromptHandledRef.current = true;
+      setShowMoodPrompt(false);
       if (session?.id) {
         await db.workoutSessions.update(session.id, { mood, energy });
       }
-      setShowMoodPrompt(false);
     },
     [session?.id]
   );
+
+  const handleMoodSkip = useCallback(() => {
+    moodPromptHandledRef.current = true;
+    setShowMoodPrompt(false);
+  }, []);
 
   // No active session
   if (!session) {
@@ -388,7 +401,7 @@ export default function WorkoutPage() {
       <MoodEnergyPrompt
         open={showMoodPrompt}
         onSubmit={handleMoodSubmit}
-        onSkip={() => setShowMoodPrompt(false)}
+        onSkip={handleMoodSkip}
       />
 
       <ExercisePicker
