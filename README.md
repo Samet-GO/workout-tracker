@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Workout Tracker
+
+Privacy-first, offline-capable strength training logger. No account required.
+
+## Features
+
+- **Offline-First**: Works without internet. All data stored locally on your device.
+- **No Account Required**: Start tracking immediately. No sign-up, no cloud sync.
+- **Quick Logging**: Match previous sets with one tap, or use +2.5/+5 buttons.
+- **Smart Suggestions**: Get weight recommendations based on RPE and energy levels.
+- **Progress Tracking**: Charts for strength gains, volume, streaks, and mood/energy correlation.
+- **8 Built-in Programs**: Coach Greg-inspired templates for beginners to intermediate.
+- **Data Export**: Full JSON backup. Sync to iCloud, Google Drive, or Dropbox.
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Database**: Dexie.js (IndexedDB)
+- **Styling**: Tailwind CSS v4
+- **Charts**: Recharts
+- **PWA**: Offline support with service worker
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Install as App
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Open in Chrome/Safari on your phone
+2. **iOS**: Share → Add to Home Screen
+3. **Android**: Menu → Install app
 
-## Learn More
+## Privacy
 
-To learn more about Next.js, take a look at the following resources:
+Your data never leaves your device. No analytics, no tracking, no servers.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
