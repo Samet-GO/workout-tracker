@@ -65,7 +65,7 @@ export function ExerciseCard({
     <Card
       className={cn(
         "transition-colors",
-        isComplete && "border-green-200 bg-green-50/50"
+        isComplete && "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/30"
       )}
     >
       <button
@@ -77,8 +77,8 @@ export function ExerciseCard({
             className={cn(
               "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
               isComplete
-                ? "bg-green-100 text-green-700"
-                : "bg-blue-100 text-blue-700"
+                ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400"
+                : "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400"
             )}
           >
             {isComplete ? (
@@ -88,7 +88,7 @@ export function ExerciseCard({
             )}
           </div>
           <div className="text-left">
-            <p className="font-medium text-zinc-900">{exercise.name}</p>
+            <p className="font-medium text-zinc-900 dark:text-zinc-100">{exercise.name}</p>
             <p className="text-xs text-zinc-500">
               {templateExercise.targetSets > 1
                 ? `${templateExercise.targetSets}x${templateExercise.targetReps}`
@@ -216,7 +216,7 @@ export function ExerciseCard({
           {!isComplete && (
             <div>
               <div className="mb-2 flex items-baseline justify-between">
-                <p className="text-xs font-semibold text-zinc-700">
+                <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   Logging: {exercise.name} — Set {currentSetNumber} of {targetSets}
                 </p>
                 {templateExercise.restSeconds > 0 && (
@@ -282,7 +282,7 @@ function SwipeableSetRow({
       </motion.div>
 
       <motion.div
-        className="relative flex items-center justify-between bg-zinc-50 px-3 py-1.5 text-sm cursor-pointer"
+        className="relative flex items-center justify-between bg-zinc-50 dark:bg-zinc-800 px-3 py-1.5 text-sm cursor-pointer"
         style={{ x }}
         drag="x"
         dragConstraints={{ left: -100, right: 0 }}
@@ -321,30 +321,30 @@ function InlineSetEdit({
 
   return (
     <motion.div
-      className="rounded-lg border border-blue-200 bg-blue-50 p-2"
+      className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/30 p-2"
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}
     >
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <label className="text-xs text-zinc-500">Weight ({unit})</label>
+          <label className="text-xs text-zinc-500 dark:text-zinc-400">Weight ({unit})</label>
           <input
             type="number"
             inputMode="decimal"
             value={weight || ""}
             onChange={(e) => setWeight(Number(e.target.value) || 0)}
-            className="h-9 w-full rounded border border-zinc-300 px-2 text-center text-sm font-semibold focus:border-blue-500 focus:outline-none"
+            className="h-9 w-full rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 text-center text-sm font-semibold text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none"
           />
         </div>
         <div className="w-16">
-          <label className="text-xs text-zinc-500">Reps</label>
+          <label className="text-xs text-zinc-500 dark:text-zinc-400">Reps</label>
           <input
             type="number"
             inputMode="numeric"
             value={reps || ""}
             onChange={(e) => setReps(Number(e.target.value) || 0)}
-            className="h-9 w-full rounded border border-zinc-300 px-2 text-center text-sm font-semibold focus:border-blue-500 focus:outline-none"
+            className="h-9 w-full rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-2 text-center text-sm font-semibold text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none"
           />
         </div>
         <div className="flex gap-1 pt-4">
@@ -357,7 +357,7 @@ function InlineSetEdit({
           </button>
           <button
             onClick={onCancel}
-            className="rounded px-2 py-1.5 text-xs text-zinc-500 hover:bg-zinc-100"
+            className="rounded px-2 py-1.5 text-xs text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700"
           >
             ✕
           </button>

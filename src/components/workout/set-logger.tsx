@@ -95,16 +95,16 @@ export function SetLogger({
 
   if (showManual) {
     return (
-      <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+      <div className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/30 p-3">
         <div className="flex items-center gap-4">
           <div className="flex-1">
-            <label className="mb-1 block text-xs font-medium text-zinc-600">
+            <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Weight ({unit})
             </label>
             <WeightInput value={weight} onChange={setWeight} />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-zinc-600">
+            <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Reps
             </label>
             <input
@@ -112,7 +112,7 @@ export function SetLogger({
               inputMode="numeric"
               value={reps || ""}
               onChange={(e) => setReps(Number(e.target.value) || 0)}
-              className="h-11 w-16 rounded-lg border border-zinc-300 text-center text-lg font-semibold focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="h-11 w-16 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-center text-lg font-semibold text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
           </div>
         </div>

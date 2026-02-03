@@ -59,7 +59,7 @@ export function QuickLogBar({
   return (
     <div className="space-y-1.5">
       {hasHistory && suggestion && (
-        <p className="text-xs text-blue-600 font-medium">{suggestion}</p>
+        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{suggestion}</p>
       )}
       <div className="flex gap-2">
         {hasHistory ? (

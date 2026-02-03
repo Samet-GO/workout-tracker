@@ -72,16 +72,16 @@ export function SpecialSetInput({ onChange }: SpecialSetInputProps) {
   }
 
   return (
-    <div className="space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2.5">
+    <div className="space-y-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 p-2.5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-zinc-600">Set Type</p>
+        <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Set Type</p>
         <button
           onClick={() => {
             setExpanded(false);
             setSetType("normal");
             onChange({});
           }}
-          className="flex items-center gap-0.5 text-xs text-zinc-400 hover:text-zinc-600"
+          className="flex items-center gap-0.5 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
         >
           Close
           <ChevronUp className="h-3 w-3" />
@@ -96,7 +96,7 @@ export function SpecialSetInput({ onChange }: SpecialSetInputProps) {
             className={`rounded-md px-3 py-2.5 min-h-[44px] text-xs font-medium transition-colors ${
               setType === st.value
                 ? "bg-blue-600 text-white"
-                : "bg-white text-zinc-600 hover:bg-zinc-100"
+                : "bg-white dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600"
             }`}
           >
             {st.label}
@@ -119,7 +119,7 @@ export function SpecialSetInput({ onChange }: SpecialSetInputProps) {
                 setDropSetWeight(v);
                 emitChange({ dropSetWeight: v });
               }}
-              className="h-9 w-full rounded border border-zinc-300 px-2 text-center text-sm"
+              className="h-9 w-full rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 text-center text-sm text-zinc-900 dark:text-zinc-100"
               placeholder="kg"
             />
           </div>
@@ -136,7 +136,7 @@ export function SpecialSetInput({ onChange }: SpecialSetInputProps) {
                 setDropSetReps(v);
                 emitChange({ dropSetReps: v });
               }}
-              className="h-9 w-full rounded border border-zinc-300 px-2 text-center text-sm"
+              className="h-9 w-full rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 text-center text-sm text-zinc-900 dark:text-zinc-100"
               placeholder="reps"
             />
           </div>
@@ -157,7 +157,7 @@ export function SpecialSetInput({ onChange }: SpecialSetInputProps) {
               setPartialsCount(v);
               emitChange({ partialsCount: v });
             }}
-            className="h-9 w-20 rounded border border-zinc-300 px-2 text-center text-sm"
+            className="h-9 w-20 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 text-center text-sm text-zinc-900 dark:text-zinc-100"
             placeholder="0"
           />
         </div>
@@ -177,7 +177,7 @@ export function SpecialSetInput({ onChange }: SpecialSetInputProps) {
               setForcedRepsCount(v);
               emitChange({ forcedRepsCount: v });
             }}
-            className="h-9 w-20 rounded border border-zinc-300 px-2 text-center text-sm"
+            className="h-9 w-20 rounded border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-700 px-2 text-center text-sm text-zinc-900 dark:text-zinc-100"
             placeholder="0"
           />
         </div>
