@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Download, Upload, FolderOpen, Check, X, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import { usePreferences } from "@/hooks/use-preferences";
@@ -108,26 +109,12 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Rest Timer</p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">Auto-start after logging a set</p>
               </div>
-              <button
-                onClick={() =>
-                  updatePreferences({
-                    restTimerEnabled: !prefs.restTimerEnabled,
-                  })
+              <Switch
+                checked={prefs.restTimerEnabled}
+                onCheckedChange={(checked) =>
+                  updatePreferences({ restTimerEnabled: checked })
                 }
-                role="switch"
-                aria-checked={prefs.restTimerEnabled}
-                className={`relative h-7 w-12 rounded-full transition-colors ${
-                  prefs.restTimerEnabled ? "bg-blue-600" : "bg-zinc-400 dark:bg-zinc-600"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
-                    prefs.restTimerEnabled
-                      ? "translate-x-5"
-                      : "translate-x-0.5"
-                  }`}
-                />
-              </button>
+              />
             </div>
 
             {/* Mood/Energy Prompt */}
@@ -136,26 +123,12 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">Mood Prompt</p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">Ask mood/energy at workout start</p>
               </div>
-              <button
-                onClick={() =>
-                  updatePreferences({
-                    showMoodPrompt: !prefs.showMoodPrompt,
-                  })
+              <Switch
+                checked={prefs.showMoodPrompt}
+                onCheckedChange={(checked) =>
+                  updatePreferences({ showMoodPrompt: checked })
                 }
-                role="switch"
-                aria-checked={prefs.showMoodPrompt}
-                className={`relative h-7 w-12 rounded-full transition-colors ${
-                  prefs.showMoodPrompt ? "bg-blue-600" : "bg-zinc-400 dark:bg-zinc-600"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
-                    prefs.showMoodPrompt
-                      ? "translate-x-5"
-                      : "translate-x-0.5"
-                  }`}
-                />
-              </button>
+              />
             </div>
 
             {/* RPE Prompt */}
@@ -164,26 +137,12 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">RPE Prompt</p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">Ask for RPE after each set</p>
               </div>
-              <button
-                onClick={() =>
-                  updatePreferences({
-                    showRpePrompt: !prefs.showRpePrompt,
-                  })
+              <Switch
+                checked={prefs.showRpePrompt}
+                onCheckedChange={(checked) =>
+                  updatePreferences({ showRpePrompt: checked })
                 }
-                role="switch"
-                aria-checked={prefs.showRpePrompt}
-                className={`relative h-7 w-12 rounded-full transition-colors ${
-                  prefs.showRpePrompt ? "bg-blue-600" : "bg-zinc-400 dark:bg-zinc-600"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
-                    prefs.showRpePrompt
-                      ? "translate-x-5"
-                      : "translate-x-0.5"
-                  }`}
-                />
-              </button>
+              />
             </div>
 
             {/* Default Increment */}
