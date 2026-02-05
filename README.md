@@ -14,11 +14,13 @@ Privacy-first, offline-capable strength training logger. No account required.
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js (App Router)
 - **Database**: Dexie.js (IndexedDB)
-- **Styling**: Tailwind CSS v4
+- **Styling**: Tailwind CSS
 - **Charts**: Recharts
 - **PWA**: Offline support with service worker
+
+> Version details in `package.json`
 
 ## Getting Started
 

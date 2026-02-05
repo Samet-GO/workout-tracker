@@ -15,7 +15,10 @@
     "test:e2e:headed": "playwright test --headed",
     "test:perf": "vitest run tests/performance",
     "test:perf:watch": "vitest tests/performance",
-    "lighthouse": "node scripts/lighthouse-audit.mjs"
+    "lighthouse": "node scripts/lighthouse-audit.mjs",
+    "validate-routes": "node scripts/validate-routes.mjs",
+    "precommit": "npm run validate-routes && npm run lint",
+    "prepare": "node scripts/setup-hooks.mjs || true"
   },
   "dependencies": {
     "@radix-ui/react-switch": "^1.2.6",
